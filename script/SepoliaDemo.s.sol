@@ -122,7 +122,13 @@ contract SepoliaDemoScript is Script {
         console2.log("isSwapAllowed ->", allowed, reason);
         require(!allowed, "BEAT 4 FAILED: the hook still admits swaps on this pool");
 
-        console2.log("now attempting a real swap; expect revert PoolPaused()");
+        console2.log("");
+        console2.log("Now attempting a REAL swap through the Uniswap v4 PoolManager.");
+        console2.log("This script is EXPECTED to abort on the next line.");
+        console2.log("Look for: Revert] PoolPaused()   (selector 0x51bd770c)");
+        console2.log("The abort IS the result: the hook refused the swap.");
+        console2.log("");
+
         vm.startBroadcast();
         _swap(key, -1e15);
         vm.stopBroadcast();
