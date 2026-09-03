@@ -14,8 +14,12 @@ AegisHook is a Uniswap v4 hook prototype wired against the real `v4-core` interf
 
 The repo vendors:
 
-- `lib/v4-core`
-- `lib/v4-periphery`
+- `lib/v4-core` — Uniswap v4 core (BUSL-1.1)
+- `lib/v4-core/lib/forge-std` — Foundry standard library
+- `lib/v4-core/lib/solmate` — required by v4-core's `Currency`, `ERC6909` and `ProtocolFees` (AGPL-3.0)
+
+These are committed as regular files rather than submodules, so a plain `git clone` builds with
+no `--recursive` and no `git submodule update`.
 
 `GuardianHook` imports directly from `@uniswap/v4-core/...`.
 
