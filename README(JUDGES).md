@@ -338,8 +338,14 @@ Outcome:
 This project is a serious prototype, but judges should understand what is intentionally simplified:
 
 - suspicious behavior detection is heuristic-based and narrow
-- the local demo simulates the Reactive callback path deterministically
-- the frontend is read-only and operational, not an admin console
+- the Reactive callback sender is a stand-in EOA. `ReactiveContract` is written against the
+  Reactive Network interfaces but is not deployed, so the alert-to-pause step is triggered
+  manually. The hook's authentication on that path (`onlyCallbackSender` plus the
+  `trustedReactiveRvmId` check) is real and enforced on-chain.
+- the local anvil demo drives the hook through `FrontendDemoPoolManager`, a stub that fakes
+  v4 storage slots so the browser can step through states without tokens or liquidity. The
+  hook it deploys is byte-identical to the production one, but no swap actually occurs. The
+  Sepolia deployment uses the canonical Uniswap v4 `PoolManager` instead.
 - production deployment would need finalized infra around callback delivery and policy management
 
 These are acceptable hackathon tradeoffs because the hardest integration points are already implemented.
@@ -491,13 +497,18 @@ The integration test checks:
 
 ## Frontend Presentation Notes
 
-The frontend is intentionally read-only and diagnostic.
+Against Sepolia the frontend is a read-only dashboard: it reads hook state and renders the
+security status, while the state transitions are driven from the terminal so every beat has an
+Etherscan transaction behind it.
 
-That is the right choice for judging because it:
+Against the local anvil demo the same page additionally exposes four buttons that send
+transactions to `FrontendDemoPoolManager` to step through the narrative.
 
-- avoids admin-only UI clutter
+That split is the right choice for judging because it:
+
 - keeps attention on live security state
-- supports a simple judge workflow: paste pool ID, refresh, inspect status
+- makes every Sepolia state change independently verifiable on a block explorer
+- supports a simple judge workflow: open the dashboard, refresh, inspect status
 
 Important UX signals in the dashboard:
 
@@ -527,10 +538,47 @@ npm run build
 If a judge only has a few minutes, the best order is:
 
 1. Read this document.
-2. Run `npm run demo`.
-3. Open the frontend with `npm run dev`.
-4. Use the printed `poolId` in the dashboard.
-5. Inspect `src/GuardianHook.sol`, `src/ReactiveContract.sol`, and `src/HookMiner.sol`.
+2. Open the live Sepolia dashboard and the Etherscan links below. The hook is deployed
+   against the canonical Uniswap v4 `PoolManager` at
+   `0xE03A1074c86CFeDd5C142C4F04F1a1536e203543`, with real tokens, real liquidity and real
+   swaps.
+3. Inspect `src/GuardianHook.sol`, `src/HookMiner.sol`, and `src/ReactiveContract.sol`.
+4. Run `forge test` to see the hook exercised against a real in-process `PoolManager`,
+   including the organic detection case.
+
+### The four beats, live on Sepolia
+
+Each beat is one transaction. Full commands are in `README.md` under
+[Sepolia Testnet Deployment](README.md#sepolia-testnet-deployment).
+
+| Beat | What happens | Hook state after |
+| --- | --- | --- |
+| 1. Healthy | A real swap through the canonical `PoolSwapTest` router. Price moves. | no alert |
+| 2. Detection | A 1-wei swap, consumed entirely as fee. Price, tick and liquidity are unchanged across the checkpoint, so `afterSwap` flags a no-op. | `EmergencyAlert` / `NO_OP_ALERT` |
+| 3. Response | `reactivePause` from the callback sender, carrying the trusted RVM id. | `paused = true`, risk 95 |
+| 4. Enforcement | Another swap is attempted. | reverts `PoolPaused()` |
+
+Beat 4 is the one worth pausing on: it is the moment the hook stops being an observer. A
+real Uniswap v4 `PoolManager` will no longer route a swap through this pool.
+
+Nothing in this sequence is simulated. Beat 2 in particular is not a hand-crafted callback --
+it is a genuine `PoolManager.swap` whose economics happen to produce a no-op, which is
+exactly the pattern the heuristic is written to catch. The behaviour is pinned by
+`testDustSwapAfterHealthySwapRaisesOrganicAlert` in `test/GuardianHook.integration.t.sol`.
+
+### Local alternative
+
+`npm run demo` runs the same narrative entirely in-process through `script/LocalDemo.s.sol`,
+against a real `PoolManager` deployed in Foundry's EVM. It broadcasts nothing and deploys
+nothing to any chain, so its printed `poolId` is not usable in the dashboard. Use it to read
+the flow, not to drive the UI.
+
+The separate anvil-based browser demo is described in `README.md` under
+[Frontend Judge Demo](README.md#frontend-judge-demo). It drives the hook through
+`FrontendDemoPoolManager`, a stub that fakes v4 storage slots so the four dashboard buttons
+can step through states without tokens or liquidity. The hook it deploys is byte-identical to
+the production one, but no swap actually occurs -- prefer the Sepolia path when showing that
+the system works.
 
 ## Why AegisHook Is Different
 

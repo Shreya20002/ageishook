@@ -9,17 +9,17 @@ import "../src/GuardianHookFactory.sol";
 import "../src/HookMiner.sol";
 import "../src/ReactiveContract.sol";
 
-import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
-import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
-import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
-import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
-import {TestERC20} from "@uniswap/v4-core/src/test/TestERC20.sol";
+import { PoolManager } from "@uniswap/v4-core/src/PoolManager.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { BalanceDelta, toBalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import { ModifyLiquidityParams, SwapParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import { PoolModifyLiquidityTest } from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
+import { PoolSwapTest } from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import { StateLibrary } from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import { TestERC20 } from "@uniswap/v4-core/src/test/TestERC20.sol";
 
 contract LocalDemoScript is Script {
     using PoolIdLibrary for PoolKey;
@@ -45,8 +45,10 @@ contract LocalDemoScript is Script {
         TestERC20 tokenA = new TestERC20(type(uint128).max);
         TestERC20 tokenB = new TestERC20(type(uint128).max);
 
-        address currency0Address = address(tokenA) < address(tokenB) ? address(tokenA) : address(tokenB);
-        address currency1Address = address(tokenA) < address(tokenB) ? address(tokenB) : address(tokenA);
+        address currency0Address =
+            address(tokenA) < address(tokenB) ? address(tokenA) : address(tokenB);
+        address currency1Address =
+            address(tokenA) < address(tokenB) ? address(tokenB) : address(tokenA);
 
         TestERC20(currency0Address).approve(address(modifyLiquidityRouter), type(uint256).max);
         TestERC20(currency0Address).approve(address(swapRouter), type(uint256).max);
@@ -55,10 +57,15 @@ contract LocalDemoScript is Script {
 
         GuardianHookFactory hookFactory = new GuardianHookFactory();
         bytes32 initCodeHash = keccak256(
-            abi.encodePacked(type(GuardianHook).creationCode, abi.encode(address(manager), CALLBACK_SENDER, DEMO_ADMIN))
+            abi.encodePacked(
+                type(GuardianHook).creationCode,
+                abi.encode(address(manager), CALLBACK_SENDER, DEMO_ADMIN)
+            )
         );
-        (bytes32 salt, address predictedHook) = HookMiner.find(address(hookFactory), initCodeHash, 0, 200000);
-        GuardianHook guardianHook = hookFactory.deploy(address(manager), CALLBACK_SENDER, DEMO_ADMIN, salt);
+        (bytes32 salt, address predictedHook) =
+            HookMiner.find(address(hookFactory), initCodeHash, 0, 200000);
+        GuardianHook guardianHook =
+            hookFactory.deploy(address(manager), CALLBACK_SENDER, DEMO_ADMIN, salt);
 
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(currency0Address),
@@ -86,7 +93,12 @@ contract LocalDemoScript is Script {
 
         modifyLiquidityRouter.modifyLiquidity(
             key,
-            ModifyLiquidityParams({tickLower: -120, tickUpper: 120, liquidityDelta: 1e18, salt: bytes32(0)}),
+            ModifyLiquidityParams({
+                tickLower: -120,
+                tickUpper: 120,
+                liquidityDelta: 1e18,
+                salt: bytes32(0)
+            }),
             ZERO_BYTES
         );
 
@@ -101,8 +113,12 @@ contract LocalDemoScript is Script {
 
         swapRouter.swap(
             key,
-            SwapParams({zeroForOne: true, amountSpecified: -1e18, sqrtPriceLimitX96: MIN_PRICE_LIMIT}),
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}),
+            SwapParams({
+                zeroForOne: true,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
             ZERO_BYTES
         );
         _logPoolState("After healthy swap", manager, guardianHook, poolId);
@@ -111,14 +127,22 @@ contract LocalDemoScript is Script {
         guardianHook.beforeSwap(
             DEMO_USER,
             key,
-            SwapParams({zeroForOne: true, amountSpecified: -1e18, sqrtPriceLimitX96: MIN_PRICE_LIMIT}),
+            SwapParams({
+                zeroForOne: true,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
             ZERO_BYTES
         );
         vm.prank(address(manager));
         guardianHook.afterSwap(
             DEMO_USER,
             key,
-            SwapParams({zeroForOne: true, amountSpecified: -1e18, sqrtPriceLimitX96: MIN_PRICE_LIMIT}),
+            SwapParams({
+                zeroForOne: true,
+                amountSpecified: -1e18,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
             toBalanceDelta(0, 0),
             ZERO_BYTES
         );
@@ -146,7 +170,12 @@ contract LocalDemoScript is Script {
         _logPoolState("After Reactive pause", manager, guardianHook, poolId);
     }
 
-    function _logPoolState(string memory label, PoolManager manager, GuardianHook guardianHook, PoolId poolId) internal view {
+    function _logPoolState(
+        string memory label,
+        PoolManager manager,
+        GuardianHook guardianHook,
+        PoolId poolId
+    ) internal view {
         (
             bool registered,
             bool paused,

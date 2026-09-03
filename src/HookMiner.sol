@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
 
 library HookMiner {
     uint160 internal constant REQUIRED_FLAGS = Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG;
@@ -12,9 +12,15 @@ library HookMiner {
         return (uint160(hookAddress) & Hooks.ALL_HOOK_MASK) == REQUIRED_FLAGS;
     }
 
-    function computeAddress(address deployer, bytes32 salt, bytes32 initCodeHash) internal pure returns (address) {
+    function computeAddress(address deployer, bytes32 salt, bytes32 initCodeHash)
+        internal
+        pure
+        returns (address)
+    {
         return address(
-            uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), deployer, salt, initCodeHash))))
+            uint160(
+                uint256(keccak256(abi.encodePacked(bytes1(0xff), deployer, salt, initCodeHash)))
+            )
         );
     }
 

@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { StateLibrary } from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { BalanceDelta, BalanceDeltaLibrary } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {
+    BeforeSwapDelta, BeforeSwapDeltaLibrary
+} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import { ModifyLiquidityParams, SwapParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
 
 contract GuardianHook is IHooks {
     using PoolIdLibrary for PoolKey;
@@ -140,7 +142,10 @@ contract GuardianHook is IHooks {
     }
 
     constructor(address poolManager_, address callbackSenderAddress, address adminAddress) {
-        if (poolManager_ == address(0) || callbackSenderAddress == address(0) || adminAddress == address(0)) {
+        if (
+            poolManager_ == address(0) || callbackSenderAddress == address(0)
+                || adminAddress == address(0)
+        ) {
             revert Unauthorized();
         }
         admin = adminAddress;
@@ -234,6 +239,13 @@ contract GuardianHook is IHooks {
         emit PoolPausedStateChanged(poolId, false, "ADMIN_RESET");
     }
 
+    function resetPoolAlert(bytes32 poolId) external onlyAdmin registeredPool(poolId) {
+        PoolConfig storage config = pools[poolId];
+        config.lastAlertReason = "";
+        config.lastAlertAt = 0;
+        config.lastUpdatedAt = block.timestamp;
+    }
+
     function syncPoolState(bytes32 poolId)
         external
         registeredPool(poolId)
@@ -305,13 +317,12 @@ contract GuardianHook is IHooks {
         return IHooks.afterInitialize.selector;
     }
 
-    function beforeAddLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
-        external
-        view
-        override
-        onlyPoolManager
-        returns (bytes4)
-    {
+    function beforeAddLiquidity(
+        address,
+        PoolKey calldata,
+        ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external view override onlyPoolManager returns (bytes4) {
         return IHooks.beforeAddLiquidity.selector;
     }
 
@@ -326,13 +337,12 @@ contract GuardianHook is IHooks {
         return (IHooks.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function beforeRemoveLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
-        external
-        view
-        override
-        onlyPoolManager
-        returns (bytes4)
-    {
+    function beforeRemoveLiquidity(
+        address,
+        PoolKey calldata,
+        ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external view override onlyPoolManager returns (bytes4) {
         return IHooks.beforeRemoveLiquidity.selector;
     }
 
@@ -347,7 +357,12 @@ contract GuardianHook is IHooks {
         return (IHooks.afterRemoveLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
 
-    function beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata)
+    function beforeSwap(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata params,
+        bytes calldata
+    )
         external
         override
         onlyPoolManager
@@ -363,23 +378,27 @@ contract GuardianHook is IHooks {
         if (!allowed) revert InvalidSwap();
 
         (uint160 sqrtPriceX96, int24 tick, uint128 liquidity) = _getPoolSnapshot(poolId);
-        checkpoints[poolId] =
-            SwapCheckpoint({active: true, sqrtPriceX96: sqrtPriceX96, tick: tick, liquidity: liquidity});
+        checkpoints[poolId] = SwapCheckpoint({
+            active: true,
+            sqrtPriceX96: sqrtPriceX96,
+            tick: tick,
+            liquidity: liquidity
+        });
 
         emit BeforeSwapValidated(
-            poolId,
-            sender,
-            params.zeroForOne,
-            params.amountSpecified,
-            sqrtPriceX96,
-            tick,
-            liquidity
+            poolId, sender, params.zeroForOne, params.amountSpecified, sqrtPriceX96, tick, liquidity
         );
 
         return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-    function afterSwap(address sender, PoolKey calldata key, SwapParams calldata, BalanceDelta delta, bytes calldata)
+    function afterSwap(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata,
+        BalanceDelta delta,
+        bytes calldata
+    )
         external
         override
         onlyPoolManager
@@ -396,8 +415,8 @@ contract GuardianHook is IHooks {
         int128 amount1 = delta.amount1();
 
         bool noOpDelta = amount0 == 0 && amount1 == 0;
-        bool unchangedState =
-            checkpoint.sqrtPriceX96 == sqrtPriceX96 && checkpoint.tick == tick && checkpoint.liquidity == liquidity;
+        bool unchangedState = checkpoint.sqrtPriceX96 == sqrtPriceX96 && checkpoint.tick == tick
+            && checkpoint.liquidity == liquidity;
         bool liquidityDropped = liquidity < checkpoint.liquidity;
         bool suspicious = noOpDelta || unchangedState || (liquidityDropped && noOpDelta);
 
@@ -411,7 +430,9 @@ contract GuardianHook is IHooks {
         delete checkpoints[poolId];
 
         emit StateReported(poolId, sqrtPriceX96, tick, liquidity, ActionType.Swap);
-        emit AfterSwapValidated(poolId, sender, amount0, amount1, sqrtPriceX96, tick, liquidity, suspicious);
+        emit AfterSwapValidated(
+            poolId, sender, amount0, amount1, sqrtPriceX96, tick, liquidity, suspicious
+        );
 
         if (suspicious) {
             config.lastAlertReason = "NO_OP_ALERT";
@@ -458,7 +479,11 @@ contract GuardianHook is IHooks {
         emit StateReported(poolId, sqrtPriceX96, tick, liquidity, actionType);
     }
 
-    function _getPoolSnapshot(bytes32 poolId) internal view returns (uint160 sqrtPriceX96, int24 tick, uint128 liquidity) {
+    function _getPoolSnapshot(bytes32 poolId)
+        internal
+        view
+        returns (uint160 sqrtPriceX96, int24 tick, uint128 liquidity)
+    {
         PoolId id = PoolId.wrap(poolId);
         (sqrtPriceX96, tick,,) = poolManager.getSlot0(id);
         liquidity = poolManager.getLiquidity(id);

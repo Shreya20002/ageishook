@@ -6,16 +6,16 @@ import "../src/GuardianHookFactory.sol";
 import "../src/HookMiner.sol";
 import "../src/ReactiveContract.sol";
 import "../src/ReactivePrimitives.sol";
-import {IExtsload} from "@uniswap/v4-core/src/interfaces/IExtsload.sol";
-import {IExttload} from "@uniswap/v4-core/src/interfaces/IExttload.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import { IExtsload } from "@uniswap/v4-core/src/interfaces/IExtsload.sol";
+import { IExttload } from "@uniswap/v4-core/src/interfaces/IExttload.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
+import { BalanceDelta, toBalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import { BeforeSwapDelta } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import { SwapParams } from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 interface Vm {
     function prank(address msgSender) external;
@@ -28,16 +28,20 @@ contract MockPoolManager is IExtsload, IExttload {
 
     mapping(bytes32 => bytes32) internal slots;
 
-    function setPoolState(bytes32 poolId, uint160 sqrtPriceX96, int24 tick, uint128 liquidity) external {
+    function setPoolState(bytes32 poolId, uint160 sqrtPriceX96, int24 tick, uint128 liquidity)
+        external
+    {
         bytes32 stateSlot = keccak256(abi.encodePacked(poolId, POOLS_SLOT));
         slots[stateSlot] = _encodeSlot0(sqrtPriceX96, tick, 0, 0);
         slots[bytes32(uint256(stateSlot) + LIQUIDITY_OFFSET)] = bytes32(uint256(liquidity));
     }
 
-    function callBeforeSwap(GuardianHook hook, address sender, PoolKey calldata key, SwapParams calldata params)
-        external
-        returns (bytes4, BeforeSwapDelta, uint24)
-    {
+    function callBeforeSwap(
+        GuardianHook hook,
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata params
+    ) external returns (bytes4, BeforeSwapDelta, uint24) {
         return hook.beforeSwap(sender, key, params, "");
     }
 
@@ -55,14 +59,22 @@ contract MockPoolManager is IExtsload, IExttload {
         return slots[slot];
     }
 
-    function extsload(bytes32 startSlot, uint256 nSlots) external view returns (bytes32[] memory values) {
+    function extsload(bytes32 startSlot, uint256 nSlots)
+        external
+        view
+        returns (bytes32[] memory values)
+    {
         values = new bytes32[](nSlots);
         for (uint256 i = 0; i < nSlots; i++) {
             values[i] = slots[bytes32(uint256(startSlot) + i)];
         }
     }
 
-    function extsload(bytes32[] calldata querySlots) external view returns (bytes32[] memory values) {
+    function extsload(bytes32[] calldata querySlots)
+        external
+        view
+        returns (bytes32[] memory values)
+    {
         values = new bytes32[](querySlots.length);
         for (uint256 i = 0; i < querySlots.length; i++) {
             values[i] = slots[querySlots[i]];
@@ -73,7 +85,11 @@ contract MockPoolManager is IExtsload, IExttload {
         return value;
     }
 
-    function exttload(bytes32[] calldata querySlots) external pure returns (bytes32[] memory values) {
+    function exttload(bytes32[] calldata querySlots)
+        external
+        pure
+        returns (bytes32[] memory values)
+    {
         values = new bytes32[](querySlots.length);
     }
 
@@ -84,9 +100,7 @@ contract MockPoolManager is IExtsload, IExttload {
     {
         uint24 tickBits = uint24(uint24(int24(tick)));
         data = bytes32(
-            uint256(sqrtPriceX96)
-                | (uint256(tickBits) << 160)
-                | (uint256(protocolFee) << 184)
+            uint256(sqrtPriceX96) | (uint256(tickBits) << 160) | (uint256(protocolFee) << 184)
                 | (uint256(lpFee) << 208)
         );
     }
@@ -118,20 +132,13 @@ contract MockReactiveService is ISystemContract {
         lastSubscription = Subscription(chainId, contractAddress, topic0, topic1, topic2, topic3);
     }
 
-    function unsubscribe(
-        uint256,
-        address,
-        uint256,
-        uint256,
-        uint256,
-        uint256
-    ) external {}
+    function unsubscribe(uint256, address, uint256, uint256, uint256, uint256) external { }
 
     function debt(address) external pure returns (uint256) {
         return 0;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     function getLastSubscription() external view returns (Subscription memory) {
         return lastSubscription;
@@ -167,10 +174,15 @@ contract GuardianHookTest {
         hookFactory = new GuardianHookFactory();
 
         bytes32 initCodeHash = keccak256(
-            abi.encodePacked(type(GuardianHook).creationCode, abi.encode(address(poolManager), CALLBACK_SENDER, address(this)))
+            abi.encodePacked(
+                type(GuardianHook).creationCode,
+                abi.encode(address(poolManager), CALLBACK_SENDER, address(this))
+            )
         );
-        (bytes32 salt, address predictedHook) = HookMiner.find(address(hookFactory), initCodeHash, 0, 200000);
-        guardianHook = hookFactory.deploy(address(poolManager), CALLBACK_SENDER, address(this), salt);
+        (bytes32 salt, address predictedHook) =
+            HookMiner.find(address(hookFactory), initCodeHash, 0, 200000);
+        guardianHook =
+            hookFactory.deploy(address(poolManager), CALLBACK_SENDER, address(this), salt);
 
         assertEq(address(guardianHook), predictedHook);
         assertTrue(HookMiner.hasRequiredFlags(address(guardianHook)));
@@ -239,22 +251,32 @@ contract GuardianHookTest {
     }
 
     function testOnlyPoolManagerCanInvokeHookCallbacks() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0 });
 
         vm.expectRevert(GuardianHook.NotPoolManager.selector);
         guardianHook.beforeSwap(address(this), poolKey, params, "");
     }
 
     function testBeforeSwapAndAfterSwapNormalPath() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0 });
         BalanceDelta delta = toBalanceDelta(10, -10);
 
         poolManager.callBeforeSwap(guardianHook, address(this), poolKey, params);
         poolManager.setPoolState(poolId, uint160(1100), 11, 500);
         poolManager.callAfterSwap(guardianHook, address(this), poolKey, params, delta);
 
-        (, , uint160 sqrtPriceX96, int24 tick, uint128 liquidity, GuardianHook.ActionType lastAction,, , ) =
-            guardianHook.getPoolState(poolId);
+        (
+            ,
+            ,
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint128 liquidity,
+            GuardianHook.ActionType lastAction,
+            ,
+            ,
+        ) = guardianHook.getPoolState(poolId);
 
         assertEq(uint256(sqrtPriceX96), 1100);
         assertEq(int256(tick), 11);
@@ -263,19 +285,21 @@ contract GuardianHookTest {
     }
 
     function testAfterSwapEmitsEmergencyAlertForNoOpPattern() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0 });
         BalanceDelta delta = toBalanceDelta(0, 0);
 
         poolManager.callBeforeSwap(guardianHook, address(this), poolKey, params);
         poolManager.setPoolState(poolId, uint160(1000), 10, 500);
         poolManager.callAfterSwap(guardianHook, address(this), poolKey, params, delta);
 
-        (, , , , , , , string memory lastAlertReason, ) = guardianHook.getPoolState(poolId);
+        (,,,,,,, string memory lastAlertReason,) = guardianHook.getPoolState(poolId);
         assertEq(lastAlertReason, "NO_OP_ALERT");
     }
 
     function testRejectsPausedPoolsInBeforeSwap() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0 });
         guardianHook.pausePool(poolId, "MANUAL_PAUSE");
 
         vm.expectRevert(GuardianHook.PoolPaused.selector);
@@ -283,7 +307,8 @@ contract GuardianHookTest {
     }
 
     function testRejectsZeroSpecifiedAmount() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 0, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 0, sqrtPriceLimitX96: 0 });
 
         vm.expectRevert(GuardianHook.InvalidSwap.selector);
         poolManager.callBeforeSwap(guardianHook, address(this), poolKey, params);
@@ -301,7 +326,8 @@ contract GuardianHookTest {
     }
 
     function testReactivePauseFlowPausesPool() public {
-        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0});
+        SwapParams memory params =
+            SwapParams({ zeroForOne: true, amountSpecified: 10, sqrtPriceLimitX96: 0 });
         BalanceDelta delta = toBalanceDelta(0, 0);
 
         poolManager.callBeforeSwap(guardianHook, address(this), poolKey, params);
@@ -328,15 +354,21 @@ contract GuardianHookTest {
         vm.prank(CALLBACK_SENDER);
         guardianHook.reactivePause(address(this), poolId, "NO_OP_ALERT");
 
-        (, bool paused, , , , , , string memory lastAlertReason, ) = guardianHook.getPoolState(poolId);
+        (, bool paused,,,,,, string memory lastAlertReason,) = guardianHook.getPoolState(poolId);
         assertTrue(paused);
         assertEq(lastAlertReason, "NO_OP_ALERT");
     }
 
     function testReactiveRnDeploymentSubscribesToEmergencyAlerts() public {
         MockReactiveService service = new MockReactiveService();
-        ReactiveContract reactiveRnContract =
-            new ReactiveContract(address(service), ORIGIN_CHAIN_ID, DESTINATION_CHAIN_ID, address(guardianHook), poolId, CALLBACK_GAS_LIMIT);
+        ReactiveContract reactiveRnContract = new ReactiveContract(
+            address(service),
+            ORIGIN_CHAIN_ID,
+            DESTINATION_CHAIN_ID,
+            address(guardianHook),
+            poolId,
+            CALLBACK_GAS_LIMIT
+        );
 
         MockReactiveService.Subscription memory sub = service.getLastSubscription();
 

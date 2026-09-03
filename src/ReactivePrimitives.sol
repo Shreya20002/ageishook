@@ -33,7 +33,7 @@ interface ISubscriptionService {
     ) external;
 }
 
-interface ISystemContract is IPayable, ISubscriptionService {}
+interface ISystemContract is IPayable, ISubscriptionService { }
 
 interface IReactive is IPayer {
     struct LogRecord {
@@ -52,10 +52,7 @@ interface IReactive is IPayer {
     }
 
     event Callback(
-        uint256 indexed chain_id,
-        address indexed _contract,
-        uint64 indexed gas_limit,
-        bytes payload
+        uint256 indexed chain_id, address indexed _contract, uint64 indexed gas_limit, bytes payload
     );
 
     function react(LogRecord calldata log) external;
@@ -93,7 +90,7 @@ abstract contract ReactiveBase is IReactive {
         vm = serviceAddress.code.length == 0;
     }
 
-    receive() external payable virtual {}
+    receive() external payable virtual { }
 
     function pay(uint256 amount) external authorizedSenderOnly {
         _pay(payable(msg.sender), amount);
@@ -118,7 +115,7 @@ abstract contract ReactiveBase is IReactive {
             return;
         }
 
-        (bool success,) = recipient.call{value: amount}(new bytes(0));
+        (bool success,) = recipient.call{ value: amount }(new bytes(0));
         require(success, "Transfer failed");
     }
 }

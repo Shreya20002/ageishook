@@ -14,10 +14,7 @@ contract ReactiveContract is ReactiveBase {
 
     event EmergencyAlertObserved(bytes32 indexed poolId, string reason, uint256 detectedAt);
     event PauseCallbackTriggered(
-        bytes32 indexed poolId,
-        string reason,
-        uint256 destinationChainId,
-        address callbackTarget
+        bytes32 indexed poolId, string reason, uint256 destinationChainId, address callbackTarget
     );
 
     constructor(
@@ -50,10 +47,8 @@ contract ReactiveContract is ReactiveBase {
 
     function react(LogRecord calldata log) external override vmOnly {
         if (
-            log.chain_id != originChainId
-                || log._contract != originContract
-                || log.topic_0 != emergencyAlertTopic
-                || bytes32(log.topic_1) != monitoredPoolId
+            log.chain_id != originChainId || log._contract != originContract
+                || log.topic_0 != emergencyAlertTopic || bytes32(log.topic_1) != monitoredPoolId
         ) {
             return;
         }
