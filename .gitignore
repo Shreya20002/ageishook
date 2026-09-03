@@ -3,6 +3,9 @@ node_modules
 .next
 next-dev*.log
 
+# local editor / tooling config, not part of the project
+.claude/
+
 # foundry / hardhat build output
 cache
 out
