@@ -107,32 +107,27 @@ contract SepoliaDemoScript is Script {
     /// Beat 4: the hook is not just observing. The real PoolManager can no longer route a
     /// swap through this pool.
     ///
-    /// Run this one WITHOUT --broadcast. Against a live --rpc-url the script executes on real
-    /// Sepolia state, so the revert is genuine -- it just costs no gas and needs no failed tx.
-    function provePaused() external view {
+    /// Run this one WITH --broadcast. Forge simulates against live Sepolia state first, the
+    /// swap reverts with PoolPaused(), and the script aborts before sending anything. The
+    /// revert is the proof, and it costs no gas.
+    ///
+    /// Two independent checks, deliberately: isSwapAllowed() is the hook's own stated verdict,
+    /// and the swap attempt is the real PoolManager refusing to route through the pool. The
+    /// first alone would only prove the hook agrees with itself.
+    function provePaused() external {
         (PoolKey memory key, GuardianHook hook) = _key();
         bytes32 poolId = PoolId.unwrap(key.toId());
 
         (bool allowed, string memory reason) = hook.isSwapAllowed(poolId, -1e15);
         console2.log("isSwapAllowed ->", allowed, reason);
+        require(!allowed, "BEAT 4 FAILED: the hook still admits swaps on this pool");
 
-        (bool ok,) = POOL_SWAP_TEST.staticcall(
-            abi.encodeCall(
-                PoolSwapTest.swap,
-                (
-                    key,
-                    SwapParams({
-                        zeroForOne: true,
-                        amountSpecified: -1e15,
-                        sqrtPriceLimitX96: MIN_PRICE_LIMIT
-                    }),
-                    PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false }),
-                    ZERO_BYTES
-                )
-            )
-        );
-        require(!ok, "BEAT 4 FAILED: swap went through on a paused pool");
-        console2.log("BEAT 4 - swap REVERTED: the hook is gating a real Uniswap v4 pool");
+        console2.log("now attempting a real swap; expect revert PoolPaused()");
+        vm.startBroadcast();
+        _swap(key, -1e15);
+        vm.stopBroadcast();
+
+        console2.log("BEAT 4 FAILED: the swap went through on a paused pool");
     }
 
     /// Admin reset so the demo can be run again.

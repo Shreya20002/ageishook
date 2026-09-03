@@ -142,7 +142,7 @@ forge script script/SepoliaDemo.s.sol:SepoliaDemoScript --sig "pause()" --rpc-ur
 ```
 
 ```bash
-forge script script/SepoliaDemo.s.sol:SepoliaDemoScript --sig "provePaused()" --rpc-url sepolia
+forge script script/SepoliaDemo.s.sol:SepoliaDemoScript --sig "provePaused()" --rpc-url sepolia --account aegis-sepolia --sender <YOUR_ADDRESS> --broadcast
 ```
 
 | Beat | What happens | Hook state after |
